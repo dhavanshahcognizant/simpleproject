@@ -1,0 +1,41 @@
+name: Cognizant Neuro-SAN Security Orchestration
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  # Allows Neuro-SAN to trigger the pipeline via HTTP POST if needed
+  repository_dispatch:
+    types: [neuro_san_scan]
+
+jobs:
+  security-management:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Trigger Neuro-SAN Streaming Chat API
+        run: |
+          # The NEURO_API_KEY is pulled securely from your GitHub Secrets
+          curl -X POST "${{ secrets.NEURO_SAN_ENDPOINT }}" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "user_message": {
+              "type": 2,
+              "text": "Initiate vulnerability management orchestration for repo ${{ github.repository }}."
+            },
+            "sly_data": {
+              "repository_url": "${{ github.server_url }}/${{ github.repository }}",
+              "commit_id": "${{ github.sha }}",
+              "config_file": "security_vulnerability_management.hocon"
+            },
+            "chat_context": {},
+            "chat_filter": {}
+          }'
