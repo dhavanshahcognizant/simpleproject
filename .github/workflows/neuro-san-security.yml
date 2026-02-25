@@ -24,7 +24,7 @@ jobs:
       - name: Trigger Neuro-SAN Streaming Chat API
         run: |
           # The NEURO_API_KEY is pulled securely from your GitHub Secrets
-          curl -X POST "${{ secrets.NEURO_SAN_ENDPOINT }}" \
+          curl -X POST "${{ secrets.NEURO_SAN_ENDPOINT }}/api/v1/streaming_chat/security_vulnerability_management" \
           -H "Content-Type: application/json" \
           -d '{
             "user_message": {
