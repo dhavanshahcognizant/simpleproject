@@ -26,9 +26,9 @@ jobs:
         run: |
           # Test connection first
           echo "🔍 Testing connection to Neuro SAN server..."
-          if ! curl -s --max-time 10 "http://localhost:8080" > /dev/null; then
+          if ! curl -s --max-time 10 "http://localhost:4173" > /dev/null; then
             echo "❌ Error: Cannot connect to Neuro SAN server"
-            echo "Server URL: http://localhost:8080"
+            echo "Server URL: http://localhost:4173"
             echo ""
             echo "Possible issues:"
             echo "1. Server is not running or not accessible from GitHub Actions"
@@ -48,7 +48,7 @@ jobs:
           
           # The NEURO_API_KEY is pulled securely from your GitHub Secrets
           echo "📡 Calling security vulnerability management agent..."
-          curl -X POST "http://localhost:8080/api/v1/security_vulnerability_management/streaming_chat" \
+          curl -X POST "http://localhost:4173/api/v1/security_vulnerability_management/streaming_chat" \
           -H "Content-Type: application/json" \
           -d '{
             "user_message": {
