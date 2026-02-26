@@ -26,7 +26,7 @@ jobs:
         run: |
           # The NEURO_API_KEY is pulled securely from your GitHub Secrets
           echo "📡 Calling security vulnerability management agent..."
-          HTTP_STATUS=$(curl -s -w "%{http_code}" -o response.json \
+          curl -s -w "%{http_code}" -o response.json \
             -X POST "http://localhost:8080/api/execute" \
             -H "Content-Type: application/json" \
             -d '{
@@ -38,7 +38,15 @@ jobs:
                 "triggered_by": "github_actions",
                 "event_type": "${{ github.event_name }}"
               }
-            }')
+            }' > http_status.txt
+          HTTP_STATUS=$(cat http_status.txt)
+
+          # Defensive: If curl fails, HTTP_STATUS may be empty
+          if [ -z "$HTTP_STATUS" ]; then
+            echo "❌ Failed to contact Neuro SAN agent (no HTTP status returned)"
+            cat response.json 2>/dev/null || echo "No response body"
+            exit 1
+          fi
           
           echo "HTTP Status: $HTTP_STATUS"
           
