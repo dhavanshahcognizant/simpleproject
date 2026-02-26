@@ -24,42 +24,45 @@ jobs:
 
       - name: Trigger Neuro-SAN Streaming Chat API
         run: |
-          # Test connection first
-          echo "🔍 Testing connection to Neuro SAN server..."
-          if ! curl -s --max-time 10 "http://localhost:4173" > /dev/null; then
-            echo "❌ Error: Cannot connect to Neuro SAN server"
-            echo "Server URL: http://localhost:4173"
-            echo ""
-            echo "Possible issues:"
-            echo "1. Server is not running or not accessible from GitHub Actions"
-            echo "2. URL is incorrect (should include http:// or https://)"
-            echo "3. Server is behind firewall/VPN"
-            echo "4. Server is running on localhost (not accessible from CI/CD)"
-            echo ""
-            echo "Solutions:"
-            echo "• Make sure your Neuro SAN server is publicly accessible"
-            echo "• Use ngrok or similar for localhost: ngrok http 8080"
-            echo "• Deploy server to cloud (Azure, AWS, etc.)"
-            echo "• Use GitHub self-hosted runner in your network"
-            exit 1
-          fi
-          
-          echo "✅ Connection successful"
-          
           # The NEURO_API_KEY is pulled securely from your GitHub Secrets
           echo "📡 Calling security vulnerability management agent..."
-          curl -X POST "http://localhost:4173/api/v1/security_vulnerability_management/streaming_chat" \
-          -H "Content-Type: application/json" \
-          -d '{
-            "user_message": {
-              "type": 2,
-              "text": "Initiate vulnerability management orchestration for repo ${{ github.repository }}."
-            },
-            "sly_data": {
-              "repository_url": "${{ github.server_url }}/${{ github.repository }}",
-              "commit_id": "${{ github.sha }}",
-              "config_file": "security_vulnerability_management.hocon"
-            },
-            "chat_context": {},
-            "chat_filter": {}
-          }'
+          HTTP_STATUS=$(curl -s -w "%{http_code}" -o response.json \
+            -X POST "http://localhost:8080/api/execute" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "registry": "registries/security_vulnerability_management.hocon",
+              "config": {
+                "repository": "${{ github.repository }}",
+                "branch": "${{ github.ref_name }}",
+                "commit": "${{ github.sha }}",
+                "triggered_by": "github_actions",
+                "event_type": "${{ github.event_name }}"
+              }
+            }')
+          
+          echo "HTTP Status: $HTTP_STATUS"
+          
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "✅ Security scan request sent successfully"
+            echo ""
+            echo "Your Neuro SAN agent is now processing:"
+            echo "  • Vulnerability Scout - Scanning for vulnerabilities"
+            echo "  • Risk Analyst - Assessing business impact" 
+            echo "  • Remediation Architect - Planning fixes"
+            echo "  • Compliance Auditor - Validating compliance"
+            echo ""
+            echo "Check your Neuro SAN server logs for detailed results."
+            
+            # Show response if available
+            if [ -f response.json ]; then
+              echo "Response:"
+              cat response.json
+            fi
+          else
+            echo "❌ Security scan request failed (HTTP $HTTP_STATUS)"
+            echo "Response:"
+            cat response.json 2>/dev/null || echo "No response body"
+            exit 1
+          fi
+
+         
