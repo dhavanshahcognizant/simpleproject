@@ -26,7 +26,7 @@ jobs:
         run: |
           # Test connection first
           echo "🔍 Testing connection to Neuro SAN server..."
-          if ! curl -s --max-time 10 "http://localhost:8080/health" > /dev/null; then
+          if ! curl -s --max-time 10 "http://localhost:8080" > /dev/null; then
             echo "❌ Error: Cannot connect to Neuro SAN server"
             echo "Server URL: http://localhost:8080"
             echo ""
