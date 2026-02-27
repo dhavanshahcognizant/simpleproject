@@ -12,7 +12,7 @@ on:
 jobs:
   security-management:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     
     permissions:
       contents: write
@@ -22,55 +22,29 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Trigger Neuro-SAN Streaming Chat API
+      - name: Start Neuro-SAN and Trigger Orchestration
         run: |
-          # The NEURO_API_KEY is pulled securely from your GitHub Secrets
-          echo "📡 Calling security vulnerability management agent..."
-          curl -s -w "%{http_code}" -o response.json \
-            -X POST "http://localhost:8080/api/execute" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "registry": "registries/security_vulnerability_management.hocon",
-              "config": {
-                "repository": "${{ github.repository }}",
-                "branch": "${{ github.ref_name }}",
-                "commit": "${{ github.sha }}",
-                "triggered_by": "github_actions",
-                "event_type": "${{ github.event_name }}"
-              }
-            }' > http_status.txt
-          HTTP_STATUS=$(cat http_status.txt)
-
-          # Defensive: If curl fails, HTTP_STATUS may be empty
-          if [ -z "$HTTP_STATUS" ]; then
-            echo "❌ Failed to contact Neuro SAN agent (no HTTP status returned)"
-            cat response.json 2>/dev/null || echo "No response body"
-            exit 1
-          fi
+          # 1. Start the server in the background
+          python run.py --neuro-san-server --port 8080 --registry registries/security_vulnerability_management.hocon &
           
-          echo "HTTP Status: $HTTP_STATUS"
+          # 2. Wait a few seconds for the server to initialize
+          sleep 1000
           
-          if [ "$HTTP_STATUS" -eq 200 ]; then
-            echo "✅ Security scan request sent successfully"
-            echo ""
-            echo "Your Neuro SAN agent is now processing:"
-            echo "  • Vulnerability Scout - Scanning for vulnerabilities"
-            echo "  • Risk Analyst - Assessing business impact" 
-            echo "  • Remediation Architect - Planning fixes"
-            echo "  • Compliance Auditor - Validating compliance"
-            echo ""
-            echo "Check your Neuro SAN server logs for detailed results."
-            
-            # Show response if available
-            if [ -f response.json ]; then
-              echo "Response:"
-              cat response.json
-            fi
-          else
-            echo "❌ Security scan request failed (HTTP $HTTP_STATUS)"
-            echo "Response:"
-            cat response.json 2>/dev/null || echo "No response body"
-            exit 1
-          fi
-
+          # 3. Now run the curl command (connecting to the background process)
+          curl -X POST "http://localhost:8080/api/v1/security_vulnerability_management/streaming_chat" \
+          -H "Authorization: Bearer ${{ secrets.NEURO_API_KEY }}" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "user_message": {
+              "type": 2,
+              "text": "Initiate vulnerability management orchestration."
+            },
+            "sly_data": {
+              "repository_url": "${{ github.server_url }}/${{ github.repository }}",
+              "commit_id": "${{ github.sha }}",
+              "config_file": "security_vulnerability_management.hocon"
+            },
+            "chat_context": {},
+            "chat_filter": {}
+          }'
          
