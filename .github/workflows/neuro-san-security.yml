@@ -26,6 +26,9 @@ jobs:
         run: |
           # The NEURO_API_KEY is pulled securely from your GitHub Secrets
           echo "📡 Calling security vulnerability management agent..."
+          echo "Server URL: ${{ github.server_url }}"
+          echo "repository: ${{ github.repository }}"
+          echo "commit_id: ${{ github.sha }}"
           curl -X POST "http://192.168.1.7:8001/trigger-security-scan" \
           -H "Content-Type: application/json" \
           -d '{
