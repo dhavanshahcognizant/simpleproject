@@ -12,7 +12,7 @@ on:
 jobs:
   security-management:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     
     permissions:
       contents: write
@@ -22,22 +22,38 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Start Neuro-SAN and Trigger Orchestration
+      - name: Trigger Neuro-SAN Streaming Chat API
         run: |
-          # 1. Start the server in the background
-          python run.py --neuro-san-server --port 8080 --registry registries/security_vulnerability_management.hocon &
+          # Test connection first
+          echo "🔍 Testing connection to Neuro SAN server..."
+          if ! curl -s --max-time 10 "http://127.0.0.1:8080" > /dev/null; then
+            echo "❌ Error: Cannot connect to Neuro SAN server"
+            echo "Server URL: http://127.0.0.1:8080"
+            echo ""
+            echo "Possible issues:"
+            echo "1. Server is not running or not accessible from GitHub Actions"
+            echo "2. URL is incorrect (should include http:// or https://)"
+            echo "3. Server is behind firewall/VPN"
+            echo "4. Server is running on localhost (not accessible from CI/CD)"
+            echo ""
+            echo "Solutions:"
+            echo "• Make sure your Neuro SAN server is publicly accessible"
+            echo "• Use ngrok or similar for localhost: ngrok http 8080"
+            echo "• Deploy server to cloud (Azure, AWS, etc.)"
+            echo "• Use GitHub self-hosted runner in your network"
+            exit 1
+          fi
           
-          # 2. Wait a few seconds for the server to initialize
-          sleep 1000
+          echo "✅ Connection successful"
           
-          # 3. Now run the curl command (connecting to the background process)
-          curl -X POST "http://localhost:8080/api/v1/security_vulnerability_management/streaming_chat" \
-          -H "Authorization: Bearer ${{ secrets.NEURO_API_KEY }}" \
+          # The NEURO_API_KEY is pulled securely from your GitHub Secrets
+          echo "📡 Calling security vulnerability management agent..."
+          curl -X POST "http://127.0.0.1:8080/api/v1/security_vulnerability_management/streaming_chat" \
           -H "Content-Type: application/json" \
           -d '{
             "user_message": {
               "type": 2,
-              "text": "Initiate vulnerability management orchestration."
+              "text": "Initiate vulnerability management orchestration for repo ${{ github.repository }}."
             },
             "sly_data": {
               "repository_url": "${{ github.server_url }}/${{ github.repository }}",
@@ -47,4 +63,3 @@ jobs:
             "chat_context": {},
             "chat_filter": {}
           }'
-         
