@@ -24,17 +24,6 @@ jobs:
 
       - name: Trigger Neuro-SAN Streaming Chat API
         run: |
-          # Test connection first
-          echo "🔍 Testing connection to Neuro SAN server..."
-          if ! curl -s --max-time 10 "http://192.168.1.7:8001/trigger-security-scan" > /dev/null; then
-            echo "❌ Error: Cannot connect to Neuro SAN server"
-            echo "Server URL: http://192.168.1.7:8001"
-            echo ""
-            exit 1
-          fi
-          
-          echo "✅ Connection successful"
-          
           # The NEURO_API_KEY is pulled securely from your GitHub Secrets
           echo "📡 Calling security vulnerability management agent..."
           curl -X POST "http://192.168.1.7:8001/trigger-security-scan" \
